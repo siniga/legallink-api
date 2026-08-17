@@ -2,36 +2,30 @@
 
 namespace App\Models;
 
-use App\Enums\CaseStatus;
-use App\Enums\ClaimStatus;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Concerns\BelongsToFirm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LegalCase extends Model
 {
-    use HasFactory;
+    use BelongsToFirm, SoftDeletes;
 
     protected $table = 'cases';
 
     protected $fillable = [
-        'case_number',
+        'firm_id',
         'client_id',
+        'case_number',
         'title',
         'description',
-        'court_name',
-        'court_date',
+        'case_type_id',
+        'case_status_id',
         'claim_status',
-        'case_status',
-        'assigned_to',
+        'court',
         'created_by',
-    ];
-
-    protected $casts = [
-        'court_date' => 'date',
-        'claim_status' => ClaimStatus::class,
-        'case_status' => CaseStatus::class,
     ];
 
     public function client(): BelongsTo
@@ -39,23 +33,40 @@ class LegalCase extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function assignee(): BelongsTo
+    public function caseType(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsTo(CaseType::class);
     }
 
-    public function creator(): BelongsTo
+    public function caseStatus(): BelongsTo
+    {
+        return $this->belongsTo(CaseStatus::class, 'case_status_id');
+    }
+
+    public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function assignedUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'case_user', 'case_id', 'user_id')
+            ->withPivot('is_lead')
+            ->withTimestamps();
+    }
+
+    public function calendarEvents(): HasMany
+    {
+        return $this->hasMany(CalendarEvent::class, 'case_id');
+    }
+
     public function documents(): HasMany
     {
-        return $this->hasMany(CaseDocument::class, 'case_id');
+        return $this->hasMany(Document::class, 'case_id');
     }
 
     public function tasks(): HasMany
     {
-        return $this->hasMany(CaseTask::class, 'case_id');
+        return $this->hasMany(Task::class, 'case_id');
     }
 }
