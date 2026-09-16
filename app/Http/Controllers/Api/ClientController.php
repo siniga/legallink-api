@@ -46,21 +46,24 @@ class ClientController extends Controller
         ]);
     }
 
-    public function show(Client $client): ClientDetailResource
+    public function show(Request $request, Client $client): ClientDetailResource
     {
         $client->load([
             'assignedUsers',
             'primaryContact',
             'contacts',
             'clientNotes',
+            'tasks' => fn ($query) => $query->with(['assignee', 'createdBy', 'legalCase'])->orderBy('due_at')->orderBy('id'),
             'cases.caseStatus',
             'cases.calendarEvents' => fn ($query) => $query
                 ->where('status', 'scheduled')
                 ->whereIn('type', ['hearing', 'court_mention'])
                 ->where('starts_at', '>=', now())
                 ->orderBy('starts_at'),
-            'documents' => fn ($query) => $query->where('is_folder', false)->latest('updated_at'),
+            'documents' => fn ($query) => $query->visibleTo($request->user())->where('is_folder', false)->latest('updated_at'),
         ])->loadCount($this->caseCounts());
+
+        $client->setAttribute('documents_count', $client->documents->count());
 
         $client->setAttribute('activity_items', AuditLog::query()
             ->where('subject_type', 'clients')

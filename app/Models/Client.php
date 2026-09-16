@@ -77,6 +77,11 @@ class Client extends Model
         return $this->hasMany(Document::class);
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
     protected function initials(): Attribute
     {
         return Attribute::get(function (): string {

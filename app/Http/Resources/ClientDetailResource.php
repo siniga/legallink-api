@@ -12,6 +12,7 @@ class ClientDetailResource extends ClientResource
     public function toArray(Request $request): array
     {
         return array_merge(parent::toArray($request), [
+            'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
             'contacts' => $this->whenLoaded('contacts', fn () => $this->contacts->map(fn ($contact) => [
                 'id' => $contact->id,
                 'client_id' => $contact->client_id,
@@ -42,6 +43,8 @@ class ClientDetailResource extends ClientResource
                     'title' => $case->title,
                     'case_number' => $case->case_number,
                     'status' => $case->caseStatus?->name ?? 'Open',
+                    'is_closed' => (bool) $case->caseStatus?->is_closed,
+                    'is_archived' => (bool) $case->caseStatus?->is_archived,
                     'next_hearing' => $next?->starts_at?->format('d M Y, g:i A') ?? '—',
                 ];
             })->values()),
